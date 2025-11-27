@@ -86,13 +86,11 @@ function montarTabela() {
     tdNota.textContent = av.nota;
 
     var tdAcoes = document.createElement("td");
-    // Edit rating button (edits the evaluation)
     var btnEditar = document.createElement("button");
     btnEditar.className = "botao-editar";
     btnEditar.type = "button";
     btnEditar.textContent = "Editar Nota";
     btnEditar.dataset.avIndex = i;
-    // Delete evaluation button (removes only this evaluation)
     var btnRemoverAvaliacao = document.createElement("button");
     btnRemoverAvaliacao.className = "botao-remover-avaliacao";
     btnRemoverAvaliacao.type = "button";
@@ -110,10 +108,8 @@ function montarTabela() {
     tbody.appendChild(tr);
   }
 
-  // Event delegation for edit/delete buttons
   tbody.addEventListener("click", function (e) {
     var target = e.target;
-    // Edit evaluation note
     if (target.classList && target.classList.contains("botao-editar")) {
       var avIndex = parseInt(target.dataset.avIndex, 10);
       if (isNaN(avIndex)) return;
@@ -124,7 +120,7 @@ function montarTabela() {
         return;
       }
       var novo = prompt("Editar nota (1-10):", avObj.nota || "");
-      if (novo === null) return; // cancel
+      if (novo === null) return;
       novo = novo.trim();
       if (novo === "") {
         alert("Nota não pode ficar vazia.");
@@ -142,7 +138,6 @@ function montarTabela() {
       return;
     }
 
-    // Remove only this evaluation
     if (
       target.classList &&
       target.classList.contains("botao-remover-avaliacao")
@@ -163,13 +158,38 @@ function montarTabela() {
       montarTabela();
       return;
     }
-
-    // (obra deletion removed — biblioteca only manipulates evaluations now)
   });
+
+  var searchInput = document.getElementById("tabela-pesquisa");
+  if (searchInput) {
+    if (!searchInput._wpListenerAdded) {
+      searchInput.addEventListener("input", aplicarFiltroTabela);
+      searchInput._wpListenerAdded = true;
+    }
+  }
+  aplicarFiltroTabela();
 }
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", montarTabela);
 } else {
   montarTabela();
+}
+
+function aplicarFiltroTabela() {
+  var input = document.getElementById("tabela-pesquisa");
+  var tbody = document.getElementById("tbody-avaliacoes");
+  if (!tbody) return;
+  var q = input && input.value ? input.value.trim().toLowerCase() : "";
+  var rows = Array.prototype.slice.call(tbody.querySelectorAll("tr"));
+  rows.forEach(function (row) {
+    var celObra = row.cells && row.cells[1];
+    if (!celObra) return;
+    var text = (celObra.textContent || "").toLowerCase();
+    if (q === "" || text.indexOf(q) !== -1) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }
+  });
 }

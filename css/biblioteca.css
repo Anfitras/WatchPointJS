@@ -21,6 +21,35 @@ thead th {
   font-size: 1.1em;
 }
 
+#tabela-pesquisa {
+  width: 100%;
+  max-width: 20rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.95rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  transition: all 0.18s ease-in-out;
+  outline: none;
+}
+
+#tabela-pesquisa::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+#tabela-pesquisa:focus {
+  border-color: var(--cor-secundaria);
+  box-shadow: 0 0 0 6px rgba(0, 0, 0, 0.25), 0 0 0 3px rgba(144, 205, 244, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+thead th input#tabela-pesquisa {
+  display: inline-block;
+  vertical-align: middle;
+}
+
 tbody td {
   padding: 1rem;
   text-align: center;
