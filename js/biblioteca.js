@@ -1,73 +1,41 @@
-function carregarAvaliacoes() {
-  try {
-    return JSON.parse(localStorage.getItem("wpAvaliacoes")) || [];
-  } catch (e) {
-    return [];
-  }
-}
-
-function salvarAvaliacoes(arr) {
-  try {
-    localStorage.setItem("wpAvaliacoes", JSON.stringify(arr));
-  } catch (e) {}
-}
-
-function carregarUsuarios() {
-  try {
-    return JSON.parse(localStorage.getItem("wpUsers")) || [];
-  } catch (e) {
-    return [];
-  }
-}
-
-function carregarObras() {
-  try {
-    return JSON.parse(localStorage.getItem("obras")) || [];
-  } catch (e) {
-    return [];
-  }
-}
+var avaliacoesCache = [];
 
 function montarTabela() {
-  var avaliacoes = carregarAvaliacoes();
-  var usuarios = carregarUsuarios();
-  var obras = carregarObras();
+  fetch("http://localhost:3000/avaliacoes")
+    .then((response) => response.json())
+    .then((avaliacoes) => {
+      avaliacoesCache = avaliacoes;
+      renderizarLinhas(avaliacoes);
+    })
+    .catch((erro) => console.error("Erro ao carregar avaliações", erro));
+}
+
+function renderizarLinhas(listaAvaliacoes) {
   var tbody = document.getElementById("tbody-avaliacoes");
   if (!tbody) return;
   tbody.innerHTML = "";
 
-  if (!avaliacoes || avaliacoes.length === 0) {
+  if (!listaAvaliacoes || listaAvaliacoes.length === 0) {
     var tr0 = document.createElement("tr");
     var td0 = document.createElement("td");
-    td0.colSpan = 4;
+    td0.colSpan = 5;
     td0.textContent =
       "Nenhuma avaliação encontrada. Use a página de teste para adicionar.";
+    td0.style.textAlign = "center";
     tr0.appendChild(td0);
     tbody.appendChild(tr0);
     return;
   }
 
-  for (var i = 0; i < avaliacoes.length; i++) {
-    var av = avaliacoes[i];
+  for (var i = 0; i < listaAvaliacoes.length; i++) {
+    var av = listaAvaliacoes[i];
     var tr = document.createElement("tr");
 
     var tdUsuario = document.createElement("td");
-    var usuario = null;
-    for (var u = 0; u < usuarios.length; u++) {
-      if (
-        usuarios[u].id === av.usuarioId ||
-        usuarios[u].email === av.usuarioEmail
-      ) {
-        usuario = usuarios[u];
-        break;
-      }
-    }
-    tdUsuario.textContent = usuario
-      ? usuario.nickname || usuario.email
-      : av.usuarioEmail || "Usuário desconhecido";
+    tdUsuario.textContent = av.usuarioEmail || "Desconhecido";
 
     var tdObra = document.createElement("td");
-    tdObra.textContent = av.obraNome || av.obra || "Obra desconhecida";
+    tdObra.textContent = av.obraNome || "Obra Desconhecida";
 
     var tdPoster = document.createElement("td");
     var img = document.createElement("img");
@@ -75,26 +43,25 @@ function montarTabela() {
     img.alt = av.obraNome || "Poster";
     img.style.maxWidth = "80px";
     img.style.maxHeight = "110px";
-    var src = "";
-    if (av.obraPoster) src = av.obraPoster;
-    else if (obras && obras[av.obraIndex] && obras[av.obraIndex].urlPoster)
-      src = obras[av.obraIndex].urlPoster;
-    img.src = src;
+    img.src = av.obraPoster || "img-gerais/sem_poster.jpg";
     tdPoster.appendChild(img);
 
     var tdNota = document.createElement("td");
     tdNota.textContent = av.nota;
+    tdNota.style.fontWeight = "bold";
 
     var tdAcoes = document.createElement("td");
+
     var btnEditar = document.createElement("button");
     btnEditar.className = "botao-editar";
     btnEditar.type = "button";
     btnEditar.textContent = "Editar Nota";
     btnEditar.dataset.avIndex = i;
+
     var btnRemoverAvaliacao = document.createElement("button");
     btnRemoverAvaliacao.className = "botao-remover-avaliacao";
     btnRemoverAvaliacao.type = "button";
-    btnRemoverAvaliacao.textContent = "Excluir Avaliação";
+    btnRemoverAvaliacao.textContent = "Excluir";
     btnRemoverAvaliacao.dataset.avIndex = i;
 
     tdAcoes.appendChild(btnEditar);
@@ -107,89 +74,76 @@ function montarTabela() {
     tr.appendChild(tdAcoes);
     tbody.appendChild(tr);
   }
+}
 
+var tbody = document.getElementById("tbody-avaliacoes");
+if (tbody) {
   tbody.addEventListener("click", function (e) {
     var target = e.target;
+
     if (target.classList && target.classList.contains("botao-editar")) {
-      var avIndex = parseInt(target.dataset.avIndex, 10);
-      if (isNaN(avIndex)) return;
-      var avaliacoesLocal = carregarAvaliacoes();
-      var avObj = avaliacoesLocal[avIndex];
-      if (!avObj) {
-        alert("Avaliação não encontrada.");
-        return;
-      }
-      var novo = prompt("Editar nota (1-10):", avObj.nota || "");
-      if (novo === null) return;
-      novo = novo.trim();
-      if (novo === "") {
-        alert("Nota não pode ficar vazia.");
-        return;
-      }
-      var nnum = parseFloat(novo);
-      if (isNaN(nnum) || nnum < 1 || nnum > 10) {
+      var avIndex = target.dataset.avIndex;
+      var avObj = avaliacoesCache[avIndex];
+
+      var novaNota = prompt("Editar nota (1-10):", avObj.nota || "");
+      if (novaNota === null) return;
+
+      novaNota = parseFloat(novaNota);
+      if (isNaN(novaNota) || novaNota < 1 || novaNota > 10) {
         alert("Informe uma nota válida entre 1 e 10.");
         return;
       }
-      avObj.nota = nnum;
-      avaliacoesLocal[avIndex] = avObj;
-      salvarAvaliacoes(avaliacoesLocal);
-      montarTabela();
-      return;
+
+      fetch("http://localhost:3000/avaliacoes/" + avIndex, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nota: novaNota }),
+      }).then((r) => {
+        if (r.ok) montarTabela();
+        else alert("Erro ao editar.");
+      });
     }
 
     if (
       target.classList &&
       target.classList.contains("botao-remover-avaliacao")
     ) {
-      var avIndex2 = parseInt(target.dataset.avIndex, 10);
-      if (isNaN(avIndex2)) return;
-      var avaliacoesLocal2 = carregarAvaliacoes();
-      if (!avaliacoesLocal2[avIndex2]) {
-        alert("Avaliação não encontrada.");
-        return;
-      }
-      var confirmarEval = confirm(
-        "Tem certeza que deseja excluir esta avaliação?"
-      );
-      if (!confirmarEval) return;
-      avaliacoesLocal2.splice(avIndex2, 1);
-      salvarAvaliacoes(avaliacoesLocal2);
-      montarTabela();
-      return;
+      var avIndex = target.dataset.avIndex;
+      var confirmar = confirm("Tem certeza que deseja excluir esta avaliação?");
+      if (!confirmar) return;
+
+      fetch("http://localhost:3000/avaliacoes/" + avIndex, {
+        method: "DELETE",
+      }).then((r) => {
+        if (r.ok) montarTabela();
+        else alert("Erro ao excluir.");
+      });
     }
   });
+}
 
-  var searchInput = document.getElementById("tabela-pesquisa");
-  if (searchInput) {
-    if (!searchInput._wpListenerAdded) {
-      searchInput.addEventListener("input", aplicarFiltroTabela);
-      searchInput._wpListenerAdded = true;
-    }
-  }
-  aplicarFiltroTabela();
+function aplicarFiltroTabela() {
+  var input = document.getElementById("tabela-pesquisa");
+  if (!input) return;
+
+  var termo = input.value.toLowerCase();
+
+  var filtrados = avaliacoesCache.filter(function (av) {
+    var nomeObra = (av.obraNome || "").toLowerCase();
+    var emailUser = (av.usuarioEmail || "").toLowerCase();
+    return nomeObra.includes(termo) || emailUser.includes(termo);
+  });
+
+  renderizarLinhas(filtrados);
+}
+
+var searchInput = document.getElementById("tabela-pesquisa");
+if (searchInput) {
+  searchInput.addEventListener("input", aplicarFiltroTabela);
 }
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", montarTabela);
 } else {
   montarTabela();
-}
-
-function aplicarFiltroTabela() {
-  var input = document.getElementById("tabela-pesquisa");
-  var tbody = document.getElementById("tbody-avaliacoes");
-  if (!tbody) return;
-  var q = input && input.value ? input.value.trim().toLowerCase() : "";
-  var rows = Array.prototype.slice.call(tbody.querySelectorAll("tr"));
-  rows.forEach(function (row) {
-    var celObra = row.cells && row.cells[1];
-    if (!celObra) return;
-    var text = (celObra.textContent || "").toLowerCase();
-    if (q === "" || text.indexOf(q) !== -1) {
-      row.style.display = "";
-    } else {
-      row.style.display = "none";
-    }
-  });
 }

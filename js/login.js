@@ -27,8 +27,36 @@ function processarLogin(event) {
 
   if (!validarFormularioLogin(idsLogin)) return;
 
-  alert("Login bem-sucedido!");
-  event.target.submit();
+  var email = document.getElementById("email").value.trim();
+  var senha = document.getElementById("senha").value;
+
+  fetch("http://localhost:3000/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email: email, senha: senha }),
+  })
+    .then((response) => {
+      if (response.ok) {
+        return response.json();
+      } else {
+        throw new Error("Credenciais inválidas");
+      }
+    })
+    .then((data) => {
+      alert("Login bem-sucedido!");
+
+      try {
+        localStorage.setItem("usuarioLogado", JSON.stringify(data.user));
+      } catch (e) {}
+
+      window.location.href = "index.html";
+    })
+    .catch((erro) => {
+      alert("E-mail ou senha incorretos.");
+      console.error(erro);
+    });
 }
 
 document.addEventListener("DOMContentLoaded", function () {

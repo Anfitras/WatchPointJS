@@ -45,29 +45,40 @@ function processarCadastro(event) {
   var email = document.getElementById(idsCadastro.email).value.trim();
   var senha = document.getElementById(idsCadastro.senha).value;
 
-  var usuarios = JSON.parse(localStorage.getItem("wpUsers")) || [];
+  fetch("http://localhost:3000/usuarios")
+    .then((response) => response.json())
+    .then((usuarios) => {
+      for (var i = 0; i < usuarios.length; i++) {
+        if (
+          usuarios[i].email &&
+          usuarios[i].email.toLowerCase() === email.toLowerCase()
+        ) {
+          alert("Já existe um usuário cadastrado com esse e-mail.");
+          return;
+        }
+      }
 
-  for (var i = 0; i < usuarios.length; i++) {
-    if (
-      usuarios[i].email &&
-      usuarios[i].email.toLowerCase() === email.toLowerCase()
-    ) {
-      alert("Já existe um usuário cadastrado com esse e-mail.");
-      return;
-    }
-  }
+      var novoUsuario = {
+        nickname: nickname,
+        email: email,
+        senha: senha,
+      };
 
-  var novoUsuario = {
-    id: usuarios.length + 1,
-    nickname: nickname,
-    email: email,
-    senha: senha,
-  };
-  usuarios.push(novoUsuario);
-  localStorage.setItem("wpUsers", JSON.stringify(usuarios));
-
-  alert("Usuário cadastrado!");
-  event.target.reset();
+      fetch("http://localhost:3000/usuarios", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(novoUsuario),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          alert("Usuário cadastrado!");
+          event.target.reset();
+        })
+        .catch((erro) => alert("Erro ao salvar usuário no servidor."));
+    })
+    .catch((erro) => console.error("Erro ao verificar usuários:", erro));
 }
 
 document.addEventListener("DOMContentLoaded", function () {
