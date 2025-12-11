@@ -4,7 +4,7 @@ const avaliacaoController = require("../controllers/avaliacaoController");
 
 router.get("/", avaliacaoController.getAvaliacoes);
 router.post("/", avaliacaoController.criarAvaliacao);
-router.put("/:index", avaliacaoController.atualizarAvaliacao);
-router.delete("/:index", avaliacaoController.deletarAvaliacao);
+router.put("/:id", avaliacaoController.atualizarAvaliacao);
+router.delete("/:id", avaliacaoController.deletarAvaliacao);
 
 module.exports = router;

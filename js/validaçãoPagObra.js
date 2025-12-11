@@ -37,24 +37,20 @@ function validarFormularioObra(ids) {
       return false;
     }
   }
-
   return true;
 }
 
 function processarObra(event) {
   event.preventDefault();
-
   var idsObra = {
     comentario: "comentario",
     nota: "nota",
     status: "status",
     episodios: "episodios",
   };
-
   if (!validarFormularioObra(idsObra)) {
     return;
   }
-
   alert("Obra cadastrada com sucesso!");
   event.target.submit();
 }

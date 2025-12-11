@@ -15,70 +15,55 @@ function validarFormularioCadastro(ids) {
     alert("Por favor, insira um e-mail válido.");
     return false;
   }
-
   if (nickname === "" || nickname.length < 3) {
     alert("Por favor, insira um nickname com pelo menos 3 caracteres.");
     return false;
   }
-
   if (senha === "" || senha.length < 6 || senha.length > 8) {
     alert("Senha inválida. A senha deve conter entre 6 e 8 caracteres.");
     return false;
   }
-
   if (confirmarSenha === "" || confirmarSenha !== senha) {
     alert("Confirmação Inválida! As senhas não correspondem.");
     return false;
   }
-
   return true;
 }
 
 function processarCadastro(event) {
   event.preventDefault();
-
   var idsCadastro = { email: "email", senha: "senha", confirmar: "confirmar" };
-
   if (!validarFormularioCadastro(idsCadastro)) return;
 
   var nickname = document.getElementById("nickname").value.trim();
   var email = document.getElementById(idsCadastro.email).value.trim();
   var senha = document.getElementById(idsCadastro.senha).value;
 
-  fetch("http://localhost:3000/usuarios")
-    .then((response) => response.json())
-    .then((usuarios) => {
-      for (var i = 0; i < usuarios.length; i++) {
-        if (
-          usuarios[i].email &&
-          usuarios[i].email.toLowerCase() === email.toLowerCase()
-        ) {
-          alert("Já existe um usuário cadastrado com esse e-mail.");
-          return;
-        }
+  var novoUsuario = {
+    nickname: nickname,
+    email: email,
+    senha: senha,
+  };
+
+  fetch("http://localhost:3000/usuarios", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(novoUsuario),
+  })
+    .then((response) => {
+      if (response.ok) {
+        return response.json();
+      } else {
+        throw new Error("Erro no cadastro");
       }
-
-      var novoUsuario = {
-        nickname: nickname,
-        email: email,
-        senha: senha,
-      };
-
-      fetch("http://localhost:3000/usuarios", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(novoUsuario),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          alert("Usuário cadastrado!");
-          event.target.reset();
-        })
-        .catch((erro) => alert("Erro ao salvar usuário no servidor."));
     })
-    .catch((erro) => console.error("Erro ao verificar usuários:", erro));
+    .then((data) => {
+      alert("Usuário cadastrado com sucesso!");
+      event.target.reset();
+    })
+    .catch((erro) => {
+      alert("Erro ao cadastrar. Verifique se o e-mail já está em uso.");
+    });
 }
 
 document.addEventListener("DOMContentLoaded", function () {

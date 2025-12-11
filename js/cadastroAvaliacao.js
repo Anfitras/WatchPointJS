@@ -55,7 +55,7 @@ function preencherSelectObras() {
       for (var j = 0; j < obras.length; j++) {
         var o = obras[j];
         var opt = document.createElement("option");
-        opt.value = j;
+        opt.value = o.id;
         opt.textContent = o.nome + " (" + (o.tipo || "") + ")";
         sel.appendChild(opt);
       }
@@ -67,19 +67,13 @@ function tratarEnvioAvaliacao(evt) {
   if (evt && evt.preventDefault) evt.preventDefault();
 
   var usuarioId = parseInt(document.getElementById("selectUsuario").value, 10);
-  var usuario = usuariosCache.find(function (u) {
-    return u.id === usuarioId;
-  });
-
-  if (!usuario) {
+  if (!usuarioId) {
     alert("Selecione um usuário válido.");
     return;
   }
 
-  var obraIndex = parseInt(document.getElementById("selectObra").value, 10);
-  var obraObj = obrasCache[obraIndex];
-
-  if (!obraObj) {
+  var obraId = parseInt(document.getElementById("selectObra").value, 10);
+  if (!obraId) {
     alert("Selecione uma obra válida.");
     return;
   }
@@ -92,19 +86,14 @@ function tratarEnvioAvaliacao(evt) {
   }
 
   var novaAvaliacao = {
-    usuarioId: usuario.id,
-    usuarioEmail: usuario.email,
-    obraIndex: obraIndex,
-    obraNome: obraObj.nome,
-    obraPoster: obraObj.urlPoster,
+    usuarioId: usuarioId,
+    obraId: obraId,
     nota: nota,
   };
 
   fetch("http://localhost:3000/avaliacoes", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(novaAvaliacao),
   })
     .then((response) => response.json())

@@ -1,43 +1,51 @@
-const db = require("../config/database");
+const db = require("../config/db");
 
 exports.getAvaliacoes = (req, res) => {
-  res.json(db.avaliacoes);
+  const sql = `
+    SELECT a.id, a.nota, 
+           u.email as usuarioEmail, 
+           o.nome as obraNome, o.urlPoster as obraPoster 
+    FROM avaliacoes a
+    JOIN usuarios u ON a.usuarioId = u.id
+    JOIN obras o ON a.obraId = o.id
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
 };
 
 exports.criarAvaliacao = (req, res) => {
-  const avaliacao = req.body;
-  const usuarioExiste = db.usuarios.find(
-    (u) => u.id == avaliacao.usuarioId || u.email == avaliacao.usuarioEmail
-  );
+  const { usuarioId, obraId, nota } = req.body;
 
-  if (!usuarioExiste) {
-    return res
-      .status(400)
-      .json({ message: "Usuário não encontrado (Chave Estrangeira)" });
-  }
+  const sql =
+    "INSERT INTO avaliacoes (usuarioId, obraId, nota) VALUES (?, ?, ?)";
 
-  avaliacao.id = db.avaliacoes.length + 1;
-  db.avaliacoes.push(avaliacao);
-  res.status(201).json(avaliacao);
+  db.query(sql, [usuarioId, obraId, nota], (err, result) => {
+    if (err) return res.status(500).json({ error: "Erro ao criar avaliação" });
+    res.status(201).json({ id: result.insertId, ...req.body });
+  });
 };
 
 exports.atualizarAvaliacao = (req, res) => {
-  const index = parseInt(req.params.index);
-  if (index >= 0 && index < db.avaliacoes.length) {
-    const avaliacaoAntiga = db.avaliacoes[index];
-    db.avaliacoes[index] = { ...avaliacaoAntiga, ...req.body };
-    res.json(db.avaliacoes[index]);
-  } else {
-    res.status(404).json({ message: "Avaliação não encontrada" });
-  }
+  const { id } = req.params;
+  const { nota } = req.body;
+
+  db.query(
+    "UPDATE avaliacoes SET nota = ? WHERE id = ?",
+    [nota, id],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: "Avaliação atualizada" });
+    }
+  );
 };
 
 exports.deletarAvaliacao = (req, res) => {
-  const index = parseInt(req.params.index);
-  if (index >= 0 && index < db.avaliacoes.length) {
-    db.avaliacoes.splice(index, 1);
+  const { id } = req.params;
+  db.query("DELETE FROM avaliacoes WHERE id = ?", [id], (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
     res.json({ message: "Avaliação removida" });
-  } else {
-    res.status(404).json({ message: "Avaliação não encontrada" });
-  }
+  });
 };

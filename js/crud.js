@@ -7,17 +7,14 @@ var tipoSelectCadastro = document.getElementById("tipo");
 
 function formatarTitulo(titulo) {
   if (!titulo) return "";
-
   var palavras = titulo.toLowerCase().split(" ");
   var palavrasFormatadas = [];
-
   for (var i = 0; i < palavras.length; i++) {
     var palavra = palavras[i];
     var primeiraLetra = palavra.charAt(0).toUpperCase();
     var restoDaPalavra = palavra.slice(1);
     palavrasFormatadas.push(primeiraLetra + restoDaPalavra);
   }
-
   return palavrasFormatadas.join(" ");
 }
 
@@ -26,7 +23,6 @@ function formatarDuracao(minutos) {
   var m = parseInt(minutos);
   var horas = Math.floor(m / 60);
   var minsRestantes = m % 60;
-
   if (horas > 0) {
     return horas + "h " + minsRestantes + "min";
   } else {
@@ -41,7 +37,7 @@ function carregarDoServidor() {
       obras = dados;
       atualizarLista();
     })
-    .catch((erro) => console.error("Erro ao carregar obras:", erro));
+    .catch((erro) => console.error(erro));
 }
 
 function validarFormulario(ids) {
@@ -65,14 +61,12 @@ function validarFormulario(ids) {
     alert("Por favor, escolha um tipo para a obra.");
     return false;
   }
-
   if (tipo === "Filme") {
     if (!valorEpisodios || valorEpisodios <= 0) {
       alert("Para filmes, informe a duração em minutos (maior que 0).");
       return false;
     }
   }
-
   function isValidPosterPath(p) {
     if (!p) return false;
     var s = p.trim().toLowerCase();
@@ -89,7 +83,6 @@ function validarFormulario(ids) {
     if (s.indexOf("/") !== -1) return true;
     return false;
   }
-
   if (!isValidPosterPath(urlPoster)) {
     alert("Por favor, insira uma URL válida para o pôster.");
     return false;
@@ -109,19 +102,18 @@ function validarFormulario(ids) {
     alert("Por favor, preencha os gêneros da obra.");
     return false;
   }
-
   return true;
 }
 
 function atualizarLista() {
   var htmlDaTabela = "";
-
   for (var i = 0; i < obras.length; i++) {
     var obra = obras[i];
-
     var generosHtml = "";
-    for (var j = 0; j < (obra.generos ? obra.generos.length : 0); j++) {
-      generosHtml += "<li>" + obra.generos[j] + "</li>";
+    var listaGeneros = Array.isArray(obra.generos) ? obra.generos : [];
+
+    for (var j = 0; j < listaGeneros.length; j++) {
+      generosHtml += "<li>" + listaGeneros[j] + "</li>";
     }
 
     var displayDuracaoOuEpisodios = "";
@@ -156,27 +148,27 @@ function atualizarLista() {
       '<td><ul class="generos">' +
       generosHtml +
       "</ul></td>" +
-      '<td><button class="botao-editar" data-index="' +
-      i +
+      '<td><button class="botao-editar" data-id="' +
+      obra.id +
       '">Editar</button> ' +
-      '<button class="botao-remover" data-index="' +
-      i +
+      '<button class="botao-remover" data-id="' +
+      obra.id +
       '">Remover</button></td>' +
       "</tr>";
   }
-
   obrasTabela.innerHTML = htmlDaTabela;
 }
 
 function processarGeneros(textoGeneros) {
   var generosArray = textoGeneros.split(",");
   var generosFormatados = [];
-
   for (var i = 0; i < generosArray.length; i++) {
     var generoLimpo = generosArray[i].trim().toLowerCase();
-    var primeiraLetra = generoLimpo.charAt(0).toUpperCase();
-    var restoDoGenero = generoLimpo.slice(1);
-    generosFormatados.push(primeiraLetra + restoDoGenero);
+    if (generoLimpo) {
+      var primeiraLetra = generoLimpo.charAt(0).toUpperCase();
+      var restoDoGenero = generoLimpo.slice(1);
+      generosFormatados.push(primeiraLetra + restoDoGenero);
+    }
   }
   return generosFormatados;
 }
@@ -196,7 +188,6 @@ function cadastrar(event) {
   var tipo = tipoSelectCadastro.value;
   var inputEpisodios = document.getElementById("episodios");
   var valorFinalEpisodios = inputEpisodios.value;
-
   var generosTexto = document.getElementById("generos").value;
 
   var obra = {
@@ -211,15 +202,12 @@ function cadastrar(event) {
 
   fetch("http://localhost:3000/obras", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(obra),
   })
     .then((response) => response.json())
     .then((dadoSalvo) => {
-      obras.push(dadoSalvo);
-      atualizarLista();
+      carregarDoServidor();
     })
     .catch((erro) => alert("Erro ao salvar no servidor"));
 
@@ -229,8 +217,9 @@ function cadastrar(event) {
   atualizarCampoDinamico();
 }
 
-function abrirModalEdicao(index) {
-  var obra = obras[index];
+function abrirModalEdicao(id) {
+  var obra = obras.find((o) => o.id == id);
+  if (!obra) return;
 
   var en = document.getElementById("edit-nome");
   if (en) en.value = obra.nome;
@@ -243,14 +232,14 @@ function abrirModalEdicao(index) {
   var enota = document.getElementById("edit-nota");
   if (enota) enota.value = obra.nota;
   var eg = document.getElementById("edit-generos");
-  if (eg) eg.value = (obra.generos || []).join(", ");
+  if (eg) eg.value = Array.isArray(obra.generos) ? obra.generos.join(", ") : "";
 
   var editEpisodiosInput = document.getElementById("edit-episodios");
   if (editEpisodiosInput) {
     editEpisodiosInput.value = obra.episodios || "";
   }
 
-  formEdicao.dataset.editingIndex = index;
+  formEdicao.dataset.editingId = id;
   atualizarCampoDinamicoEdicao();
   window.location.hash = "editModal";
 }
@@ -330,11 +319,10 @@ function salvarEdicao(event) {
   };
   if (!validarFormulario(idsEdicao)) return;
 
-  var index = formEdicao.dataset.editingIndex;
+  var id = formEdicao.dataset.editingId;
   var tipo = document.getElementById("edit-tipo").value;
   var inputEpisodios = document.getElementById("edit-episodios");
   var valorFinalEpisodios = inputEpisodios.value;
-
   var generosTexto = document.getElementById("edit-generos").value;
 
   var obraAtualizada = {
@@ -347,19 +335,14 @@ function salvarEdicao(event) {
     generos: processarGeneros(generosTexto),
   };
 
-  fetch("http://localhost:3000/obras/" + index, {
+  fetch("http://localhost:3000/obras/" + id, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(obraAtualizada),
   })
     .then((response) => {
       if (response.ok) {
-        obras[index] = obraAtualizada;
-        atualizarLista();
-        if (typeof atualizarCampoDinamico === "function")
-          atualizarCampoDinamico();
+        carregarDoServidor();
         window.location.hash = "";
       } else {
         alert("Erro ao editar no servidor.");
@@ -372,22 +355,22 @@ if (formCadastro) formCadastro.addEventListener("submit", cadastrar);
 
 if (obrasTabela) {
   obrasTabela.addEventListener("click", function (event) {
-    if (event.target.classList.contains("botao-editar")) {
-      var index = event.target.dataset.index;
-      abrirModalEdicao(index);
-    } else if (event.target.classList.contains("botao-remover")) {
-      var index = event.target.dataset.index;
-      var confirmar = confirm(
-        'Tem certeza que deseja remover "' + obras[index].nome + '"?'
-      );
+    var target = event.target;
+    var id = target.dataset.id;
+
+    if (target.classList.contains("botao-editar")) {
+      abrirModalEdicao(id);
+    } else if (target.classList.contains("botao-remover")) {
+      var obra = obras.find((o) => o.id == id);
+      var nome = obra ? obra.nome : "esta obra";
+      var confirmar = confirm('Tem certeza que deseja remover "' + nome + '"?');
       if (confirmar) {
-        fetch("http://localhost:3000/obras/" + index, {
+        fetch("http://localhost:3000/obras/" + id, {
           method: "DELETE",
         })
           .then((response) => {
             if (response.ok) {
-              obras.splice(index, 1);
-              atualizarLista();
+              carregarDoServidor();
             } else {
               alert("Erro ao remover do servidor.");
             }
@@ -400,7 +383,6 @@ if (obrasTabela) {
 
 if (formEdicao) formEdicao.addEventListener("submit", salvarEdicao);
 carregarDoServidor();
-atualizarLista();
 
 document.addEventListener("DOMContentLoaded", function () {
   atualizarCampoDinamico();
